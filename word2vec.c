@@ -18,13 +18,13 @@
 #include <math.h>
 #include <pthread.h>
 
-#define MAX_STRING 100
-#define EXP_TABLE_SIZE 1000
-#define MAX_EXP 6
+#define MAX_STRING 100  // better not to modify this -- though some characters in rare langauges correspond to lots of bytes using utf-8
+#define EXP_TABLE_SIZE 1000 // no need to modify -- create lookup table for faster softmax computation
+#define MAX_EXP 6 
 #define MAX_SENTENCE_LENGTH 1000
-#define MAX_CODE_LENGTH 40
+#define MAX_CODE_LENGTH 100 // increase tree capacity abit
 
-const int vocab_hash_size = 30000000;  // Maximum 30 * 0.7 = 21M words in the vocabulary
+const int vocab_hash_size = 300000000;  // Maximum 10 * 30 * 0.7 = 210M words in the vocabulary
 
 typedef float real;                    // Precision of float numbers
 
@@ -34,7 +34,7 @@ struct vocab_word {
   char *word, *code, codelen;
 };
 
-char train_file[MAX_STRING], output_file[MAX_STRING];
+char train_file[MAX_STRING], output_file[MAX_STRING], output_vocab_file[MAX_STRING];
 char save_vocab_file[MAX_STRING], read_vocab_file[MAX_STRING];
 struct vocab_word *vocab;
 int binary = 0, cbow = 1, debug_mode = 2, window = 5, min_count = 5, num_threads = 12, min_reduce = 1;
@@ -557,6 +557,7 @@ void *TrainModelThread(void *id) {
 void TrainModel() {
   long a, b, c, d;
   FILE *fo;
+  FILE *fo1;
   pthread_t *pt = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
   printf("Starting training using file %s\n", train_file);
   starting_alpha = alpha;
@@ -569,6 +570,7 @@ void TrainModel() {
   for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, TrainModelThread, (void *)a);
   for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
   fo = fopen(output_file, "wb");
+  fo1 = fopen(output_vocab_file, "wb");
   if (classes == 0) {
     // Save the word vectors
     fprintf(fo, "%lld %lld\n", vocab_size, layer1_size);
@@ -577,6 +579,10 @@ void TrainModel() {
       if (binary) for (b = 0; b < layer1_size; b++) fwrite(&syn0[a * layer1_size + b], sizeof(real), 1, fo);
       else for (b = 0; b < layer1_size; b++) fprintf(fo, "%lf ", syn0[a * layer1_size + b]);
       fprintf(fo, "\n");
+
+      // write out vocab count, vocabulary is sorted  --  write directly
+      fprintf(fo1, "%s ", vocab[a].word);
+      fprintf(fo1, "%lld\n", vocab[a].cn);
     }
   } else {
     // Run K-means on the word vectors
@@ -623,6 +629,7 @@ void TrainModel() {
     free(cl);
   }
   fclose(fo);
+  fclose(fo1);
 }
 
 int ArgPos(char *str, int argc, char **argv) {
@@ -646,6 +653,7 @@ int main(int argc, char **argv) {
     printf("\t-train <file>\n");
     printf("\t\tUse text data from <file> to train the model\n");
     printf("\t-output <file>\n");
+    printf("\t-output-vocab <file>\n");
     printf("\t\tUse <file> to save the resulting word vectors / word clusters\n");
     printf("\t-size <int>\n");
     printf("\t\tSet size of word vectors; default is 100\n");
@@ -683,6 +691,7 @@ int main(int argc, char **argv) {
     return 0;
   }
   output_file[0] = 0;
+  output_vocab_file[0] = 0;
   save_vocab_file[0] = 0;
   read_vocab_file[0] = 0;
   if ((i = ArgPos((char *)"-size", argc, argv)) > 0) layer1_size = atoi(argv[i + 1]);
@@ -695,6 +704,7 @@ int main(int argc, char **argv) {
   if (cbow) alpha = 0.05;
   if ((i = ArgPos((char *)"-alpha", argc, argv)) > 0) alpha = atof(argv[i + 1]);
   if ((i = ArgPos((char *)"-output", argc, argv)) > 0) strcpy(output_file, argv[i + 1]);
+  if ((i = ArgPos((char *)"-output-vocab", argc, argv)) > 0) strcpy(output_vocab_file, argv[i + 1]);
   if ((i = ArgPos((char *)"-window", argc, argv)) > 0) window = atoi(argv[i + 1]);
   if ((i = ArgPos((char *)"-sample", argc, argv)) > 0) sample = atof(argv[i + 1]);
   if ((i = ArgPos((char *)"-hs", argc, argv)) > 0) hs = atoi(argv[i + 1]);
