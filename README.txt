@@ -1,3 +1,11 @@
+Following modifications are made:
+
+    1. Increasing size of vocabulary by 10 times to accomodate character ngrams in all languages.
+    2. Output occurrences of units in vocabulary -- specify output path by option -output-vocab
+
+
+**** Original README ****
+
 Tools for computing distributed representtion of words
 ------------------------------------------------------
 
@@ -8,11 +16,11 @@ Bag-of-Words or the Skip-Gram neural network architectures. The user should to s
  - desired vector dimensionality
  - the size of the context window for either the Skip-Gram or the Continuous Bag-of-Words model
  - training algorithm: hierarchical softmax and / or negative sampling
- - threshold for downsampling the frequent words 
+ - threshold for downsampling the frequent words
  - number of threads to use
  - the format of the output word vector file (text or binary)
 
-Usually, the other hyper-parameters such as the learning rate do not need to be tuned for different training sets. 
+Usually, the other hyper-parameters such as the learning rate do not need to be tuned for different training sets.
 
 The script demo-word.sh downloads a small (100MB) text corpus from the web, and trains a small word vector model. After the training
 is finished, the user can interactively explore the similarity of the words.
