@@ -17,6 +17,7 @@
 #include <string.h>
 #include <math.h>
 #include <pthread.h>
+#include <assert.h>
 
 #define MAX_STRING 100  // better not to modify this -- though some characters in rare langauges correspond to lots of bytes using utf-8
 #define EXP_TABLE_SIZE 1000 // no need to modify -- create lookup table for faster softmax computation
@@ -713,7 +714,9 @@ int main(int argc, char **argv) {
   if ((i = ArgPos((char *)"-iter", argc, argv)) > 0) iter = atoi(argv[i + 1]);
   if ((i = ArgPos((char *)"-min-count", argc, argv)) > 0) min_count = atoi(argv[i + 1]);
   if ((i = ArgPos((char *)"-classes", argc, argv)) > 0) classes = atoi(argv[i + 1]);
-  vocab = (struct vocab_word *)calloc(vocab_max_size, sizeof(struct vocab_word));
+  printf("Output vocab file to (handle) ->  %d\n", output_vocab_file[0]);
+  assert(output_vocab_file[0]>0);
+    vocab = (struct vocab_word *)calloc(vocab_max_size, sizeof(struct vocab_word));
   vocab_hash = (int *)calloc(vocab_hash_size, sizeof(int));
   expTable = (real *)malloc((EXP_TABLE_SIZE + 1) * sizeof(real));
   for (i = 0; i < EXP_TABLE_SIZE; i++) {
@@ -722,4 +725,5 @@ int main(int argc, char **argv) {
   }
   TrainModel();
   return 0;
+
 }
